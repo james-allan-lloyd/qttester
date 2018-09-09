@@ -1,6 +1,10 @@
-def test_setting_text():
-    print("hello world!")
-    # app = ScriptableApplication("test-app.exe")
-    # app.start()
+import qttester
+import sys
 
-    # app['main_window']['textedit'].plainText = "hello world"
+def test_setting_text(app):
+    # print("(std) hello world!")
+    # qttester.print("(qt) hello world!")
+    # sys.stdout.write("direct\n")
+    app.child('main_window').child('centralWidget').child('textEdit').plainText = "hello world"
+
+    sys.stdout.flush()

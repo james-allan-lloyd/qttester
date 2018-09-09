@@ -9,11 +9,12 @@ boost_lib_list = ['math', 'wave', 'container', 'contract', 'exception', 'graph',
 class QtTesterConan(ConanFile):
     settings = "os", "compiler", "build_type", "arch"
     requires = "Qt/5.11.0@bincrafters/stable", "boost/1.68.0@conan/stable"
-    build_requires = "cmake_installer/3.11.2@conan/stable"
+    build_requires = "cmake_installer/3.12.1@conan/stable"
     generators = "cmake", "gcc", "txt", "virtualenv"
 
     default_options = ["boost:without_%s=True" % libname for libname in boost_lib_list if libname != "python"]
     default_options.append("boost:without_python=False")
+    # default_options.append("boost:shared=True")
     default_options = tuple(default_options)
 
     def imports(self):
