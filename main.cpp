@@ -3,6 +3,7 @@
 
 #include <QApplication>
 #include <QDebug>
+#include <QThread>
 #include <iostream>
 
 namespace python = boost::python;
@@ -125,9 +126,18 @@ public:
 };
 
 
+void end_test()
+{
+    std::cout << "ending tests" << std::endl;
+    QMetaObject::invokeMethod(qApp, "closeAllWindows", Qt::QueuedConnection);
+    std::cout << "tests ended" << std::endl;
+}
+
+
 BOOST_PYTHON_MODULE(qttester)
 {
     python::def("print", qt_debug_print);
+    python::def("end_test", end_test);
 
     python::class_<QObjectReference>("QObjectReference", python::no_init)
            .def("child", &QObjectReference::child)
@@ -148,41 +158,83 @@ BOOST_PYTHON_MODULE(qttester)
 //     extern "C" void INIT_MODULE();
 // #endif
 
+class with_gil
+{
+public:
+    with_gil()  { state_ = PyGILState_Ensure(); }
+    ~with_gil() { PyGILState_Release(state_);   }
+
+    with_gil(const with_gil&)            = delete;
+    with_gil& operator=(const with_gil&) = delete;
+private:
+    PyGILState_STATE state_;
+};
+
+class TestingThread : public QThread
+{
+    python::object main_namespace;
+    void run() override {
+        try {
+            PyImport_AppendInittab(const_cast<char*>("qttester"), PyInit_qttester);
+            Py_Initialize();
+
+            python::object main_module = python::import("__main__");
+            main_namespace = main_module.attr("__dict__");
+            python::object file = python::exec_file("qttester.py", main_namespace);
+        }
+        catch(python::error_already_set& e) {
+            std::cerr << "Python Exception: " << e << std::endl;
+        }
+        std::cout << "thread exit" << std::endl;
+    }
+
+public:
+    TestingThread()
+        : QThread()
+    {
+       start();
+    }
+
+    void stop()
+    {
+        // try {
+        //     // with_gil g;
+        //     python::object close = main_namespace["close"];
+        //     if(!close)
+        //     {
+        //         std::cerr << "Couldn't find close method" << std::endl;
+        //     }
+        //     else
+        //     {
+        //         close();
+        //         std::cout << "closed" << std::endl;
+        //     }
+        // }
+        // catch(python::error_already_set& e) {
+        //     std::cerr << "Python Exception while closing: " << std::endl;
+        // }
+        wait();
+        std::cout << "Thread exit clean" << std::endl;
+    }
+
+    virtual ~TestingThread() override {
+        // stop();
+    }
+};
+
 
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
-    if(app.arguments().length() < 2)
-    {
-        std::cout << "Usage: qt-tester SCRIPT" << std::endl;
-        return 1;
-    }
-
     std::cout << "Starting application" << std::endl;
-    qDebug() << "Foo";
 
     MainWindow w;
+    TestingThread thread;
 
-    try {
-        PyImport_AppendInittab((char*)"qttester", PyInit_qttester);
-        Py_Initialize();
-
-        python::object main_module = python::import("__main__");
-        python::object main_namespace = main_module.attr("__dict__");
-
-        python::object file = python::exec_file(app.arguments().at(1).toUtf8(), main_namespace);
-        // python::object file = python::exec_file(argv[1], main_namespace);
-        ScriptableApplication scriptableApp;
-        main_namespace["test_setting_text"](scriptableApp);
-        w.show();
-        int result = app.exec();
-        // int result = 0;
-        std::cout << "Clean exit (" << result << ")" << std::endl;
-        return result;
-    }
-    catch(python::error_already_set& e) {
-        std::cerr << "Python Exception: " << e << std::endl;
-        return 255;
-    }
-
+    int ret = 0;
+    w.show();
+    ret = app.exec();
+    thread.stop();
+    std::cout << "Clean exit (" << ret << ")" << std::endl;
+    return ret;
 }

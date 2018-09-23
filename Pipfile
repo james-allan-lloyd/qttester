@@ -5,6 +5,9 @@ name = "pypi"
 
 [packages]
 conan = "*"
+pytest = "*"
+pyhamcrest = "*"
+rpyc = "*"
 
 [dev-packages]
 
