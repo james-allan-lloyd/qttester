@@ -1,5 +1,6 @@
 #include <boost/python.hpp>
 #include "mainwindow.h"
+#include "applicationundertest.h"
 
 #include <QApplication>
 #include <QDebug>
@@ -42,6 +43,8 @@ void qt_debug_print(const std::string& out)
     qDebug() << out.c_str();
 }
 
+ApplicationUnderTest* g_aut = nullptr;
+
 class QObjectReference
 {
     QObject* object_ = nullptr;
@@ -75,23 +78,144 @@ public:
     python::object getattr(const std::string& attributeName)
     {
         qDebug() << "getattr" << attributeName.c_str();
+        // return python::object();
+        QVariant result(object_->property(attributeName.c_str()));
+        switch (result.type()) {
+        case QVariant::Invalid:
+            break;
+        case QVariant::Bool:
+            break;
+        case QVariant::Int:
+            break;
+        case QVariant::UInt:
+            break;
+        case QVariant::LongLong:
+            break;
+        case QVariant::ULongLong:
+            break;
+        case QVariant::Double:
+            break;
+        case QVariant::Char:
+            break;
+        case QVariant::Map:
+            break;
+        case QVariant::List:
+            break;
+        case QVariant::StringList:
+            break;
+        case QVariant::ByteArray:
+            break;
+        case QVariant::BitArray:
+            break;
+        case QVariant::Date:
+            break;
+        case QVariant::Time:
+            break;
+        case QVariant::DateTime:
+            break;
+        case QVariant::Url:
+            break;
+        case QVariant::Locale:
+            break;
+        case QVariant::Rect:
+            break;
+        case QVariant::RectF:
+            break;
+        case QVariant::Size:
+            break;
+        case QVariant::SizeF:
+            break;
+        case QVariant::Line:
+            break;
+        case QVariant::LineF:
+            break;
+        case QVariant::Point:
+            break;
+        case QVariant::PointF:
+            break;
+        case QVariant::RegExp:
+            break;
+        case QVariant::RegularExpression:
+            break;
+        case QVariant::Hash:
+            break;
+        case QVariant::EasingCurve:
+            break;
+        case QVariant::Uuid:
+            break;
+        case QVariant::ModelIndex:
+            break;
+        case QVariant::PersistentModelIndex:
+            break;
+        case QVariant::LastCoreType:
+            break;
+        case QVariant::Font:
+            break;
+        case QVariant::Pixmap:
+            break;
+        case QVariant::Brush:
+            break;
+        case QVariant::Color:
+            break;
+        case QVariant::Palette:
+            break;
+        case QVariant::Image:
+            break;
+        case QVariant::Polygon:
+            break;
+        case QVariant::Region:
+            break;
+        case QVariant::Bitmap:
+            break;
+        case QVariant::Cursor:
+            break;
+        case QVariant::KeySequence:
+            break;
+        case QVariant::Pen:
+            break;
+        case QVariant::TextLength:
+            break;
+        case QVariant::TextFormat:
+            break;
+        case QVariant::Matrix:
+            break;
+        case QVariant::Transform:
+            break;
+        case QVariant::Matrix4x4:
+            break;
+        case QVariant::Vector2D:
+            break;
+        case QVariant::Vector3D:
+            break;
+        case QVariant::Vector4D:
+            break;
+        case QVariant::Quaternion:
+            break;
+        case QVariant::PolygonF:
+            break;
+        case QVariant::Icon:
+            break;
+        case QVariant::SizePolicy:
+            break;
+        case QVariant::UserType:
+            break;
+        case QVariant::LastType:
+            break;
+        case QVariant::String:
+            return python::object(result.toString().toStdString());
+        }
+
         return python::object();
     }
 
     void setattr(const std::string& attributeName, python::object obj)
     {
         qDebug() << "setattr" << attributeName.c_str() << python::extract<char*>(python::str(obj));
-        if(!object_)
-            throw std::runtime_error("Invalid object");
-
-        QVariant prop(object_->property(attributeName.c_str()));
-        if(!prop.isValid())
-        {
-            throw std::runtime_error("Invalid property: " +attributeName);
-        }
-
-        object_->setProperty(attributeName.c_str(),
-                             QString::fromUtf8(python::extract<const char*>(python::str(obj))));
+        QVariant variant = python::extract<char*>(python::str(obj));
+        QMetaObject::invokeMethod(g_aut, "setAttribute", Qt::QueuedConnection,
+                                  Q_ARG(QObject*, object_),
+                                  Q_ARG(QString, QString::fromStdString(attributeName)),
+                                  Q_ARG(QVariant, variant));
     }
 };
 
@@ -230,6 +354,8 @@ int main(int argc, char *argv[])
 
     MainWindow w;
     TestingThread thread;
+    ApplicationUnderTest aut;
+    g_aut = &aut;
 
     int ret = 0;
     w.show();

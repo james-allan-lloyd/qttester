@@ -21,7 +21,12 @@ link_directories(${Python3_LIBRARY_DIRS})
 # Find the QtWidgets library
 find_package(Qt5Widgets)
 
-set(SOURCES ${SOURCES} main.cpp mainwindow.cpp)
+set(SOURCES
+    ${SOURCES}
+    main.cpp
+    mainwindow.cpp
+    applicationundertest.cpp
+    qttester.py)
 qt5_wrap_ui(SOURCES mainwindow.ui)
 
 add_executable(test-app ${SOURCES})
